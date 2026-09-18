@@ -2,15 +2,26 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Schendel Design Lab - Parametric Vase Designer</title>
   <style>
-    body {
+    * { box-sizing: border-box; }
+
+    html, body {
       margin: 0;
+      padding: 0;
       overflow: hidden;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #0a0a14;
+      -webkit-tap-highlight-color: transparent;
     }
+
+    canvas { display: block; touch-action: none; }
+
+    /* ==================== DESKTOP SIDEBAR ==================== */
     #sidebar {
       position: absolute;
       top: 16px;
@@ -32,10 +43,16 @@
       gap: 4px;
       scrollbar-width: thin;
       scrollbar-color: #ff7e5f #1a1a2a;
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
     #sidebar::-webkit-scrollbar { width: 6px; }
     #sidebar::-webkit-scrollbar-track { background: #1a1a2a; border-radius: 3px; }
     #sidebar::-webkit-scrollbar-thumb { background: #ff7e5f; border-radius: 3px; }
+
+    /* Sheet toggle (mobile only) */
+    .sheet-toggle { display: none; }
 
     /* ---- Branding Header ---- */
     .brand-header {
@@ -52,7 +69,6 @@
       width: 46px;
       height: 46px;
       padding: 4px;
-      box-sizing: border-box;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -65,10 +81,7 @@
       object-fit: contain;
       border-radius: 50%;
     }
-    .brand-text {
-      display: flex;
-      flex-direction: column;
-    }
+    .brand-text { display: flex; flex-direction: column; }
     .brand-title {
       font-size: 13px;
       font-weight: 700;
@@ -135,6 +148,7 @@
       accent-color: #ff7e5f;
       height: 4px;
       margin: 2px 0;
+      background: transparent;
     }
     .hint {
       font-size: 9px;
@@ -269,6 +283,7 @@
       border-radius: 14px;
       font-size: 11px;
       backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       border: 1px solid rgba(255, 255, 255, 0.08);
       z-index: 15;
       pointer-events: none;
@@ -297,23 +312,172 @@
       border-radius: 10px;
       font-size: 11px;
       backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
       border: 1px solid rgba(255, 255, 255, 0.06);
       z-index: 15;
       pointer-events: none;
     }
-    @media (max-width: 650px) {
-      #sidebar { width: 220px; padding: 14px 12px; }
-      .brand-title { font-size: 11px; }
-      #info { display: none; }
+
+    /* ==================== TABLET ==================== */
+    @media (max-width: 900px) and (min-width: 769px) {
+      #sidebar { width: 250px; padding: 16px 14px; }
+      .brand-title { font-size: 12px; }
+    }
+
+    /* ==================== MOBILE (bottom sheet) ==================== */
+    @media (max-width: 768px) {
+      #sidebar {
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 80vh;
+        height: 80dvh;
+        max-height: 80vh;
+        max-height: 80dvh;
+        border-radius: 22px 22px 0 0;
+        border-bottom: none;
+        padding: 0 16px calc(16px + env(safe-area-inset-bottom)) 16px;
+        transform: translateY(calc(100% - 56px));
+        box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.7);
+        gap: 2px;
+      }
+      #sidebar.expanded {
+        transform: translateY(0);
+      }
+
+      /* Sticky handle bar at the top of the sheet */
+      .sheet-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        position: sticky;
+        top: 0;
+        height: 56px;
+        margin: 0 -16px 4px -16px;
+        padding: 0 16px;
+        background: rgba(18, 18, 30, 0.98);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 22px 22px 0 0;
+        cursor: pointer;
+        user-select: none;
+        z-index: 10;
+        flex-shrink: 0;
+      }
+      .sheet-toggle::before {
+        content: '';
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 44px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.28);
+        border-radius: 2px;
+      }
+      .sheet-toggle-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: #ff8c6f;
+      }
+      .sheet-toggle-chevron {
+        display: inline-block;
+        font-size: 10px;
+        transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        color: #ff8c6f;
+      }
+      #sidebar.expanded .sheet-toggle-chevron {
+        transform: rotate(180deg);
+      }
+
+      /* Tighter branding in mobile sheet */
+      .brand-header {
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        gap: 10px;
+      }
+      .brand-logo-wrap { width: 38px; height: 38px; padding: 3px; }
+      .brand-title { font-size: 12px; }
+      .brand-subtitle { font-size: 8px; letter-spacing: 1px; }
+
+      /* Bigger touch targets */
+      .slider-container { margin-bottom: 10px; }
+      .slider-container label { font-size: 11px; }
+      .slider-container .value { font-size: 12px; }
+      .slider-container input[type=range] {
+        height: 6px;
+        margin: 8px 0 2px 0;
+      }
+      .hint { font-size: 10px; }
+
+      .mode-toggle { padding: 4px; gap: 4px; }
+      .mode-btn { padding: 12px 8px; font-size: 12px; }
+
+      .preset-row { gap: 6px; margin: 6px 0; }
+      .preset-btn {
+        padding: 10px 4px;
+        font-size: 10px;
+        letter-spacing: 1px;
+      }
+
+      .mode-note { font-size: 11px; padding: 9px 10px; }
+
+      #downloadSTL {
+        padding: 16px;
+        font-size: 14px;
+        margin-top: 16px;
+        margin-bottom: 4px;
+      }
+      .toggle-row { margin-top: 16px; padding-top: 16px; }
+      .toggle-row input { width: 20px; height: 20px; }
+      .toggle-row label { font-size: 13px; }
+
+      /* Info panel — full-width bar at the top */
+      #info {
+        top: calc(10px + env(safe-area-inset-top));
+        left: 10px;
+        right: 10px;
+        padding: 8px 12px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px 14px;
+        font-size: 10px;
+        border-radius: 10px;
+        line-height: 1.4;
+      }
+      #info .title { display: none; }
+
+      #instructions { display: none; }
+    }
+
+    /* Very short phones */
+    @media (max-width: 768px) and (max-height: 640px) {
+      #sidebar { height: 88vh; height: 88dvh; }
     }
   </style>
 </head>
 <body>
   <div id="sidebar">
+    <!-- ============ MOBILE SHEET HANDLE ============ -->
+    <div class="sheet-toggle" id="sheetToggle">
+      <span class="sheet-toggle-label">
+        Controls <span class="sheet-toggle-chevron">▲</span>
+      </span>
+    </div>
+
     <!-- ============ BRANDING HEADER ============ -->
     <div class="brand-header">
       <div class="brand-logo-wrap">
-        <!-- Make sure logo.png is in the same folder as this HTML file -->
         <img src="logo.png" alt="Schendel Design Lab Logo">
       </div>
       <div class="brand-text">
@@ -439,12 +603,12 @@
 
   <div id="info">
     <div class="title">Dimensions</div>
-    <div class="stat">Height: <span id="info-height">150 mm</span></div>
-    <div class="stat">Max Ø: <span id="info-diameter">— mm</span></div>
+    <div class="stat">H: <span id="info-height">150 mm</span></div>
+    <div class="stat">Ø: <span id="info-diameter">— mm</span></div>
     <div class="stat">Mode: <span id="info-mode">Hollow</span></div>
-    <div class="stat">Volume: <span id="info-volume">— cm³</span></div>
-    <div class="stat">Triangles: <span id="info-tris">—</span></div>
-    <div class="stat">STL size: <span id="info-size">— KB</span></div>
+    <div class="stat">Vol: <span id="info-volume">— cm³</span></div>
+    <div class="stat">Tris: <span id="info-tris">—</span></div>
+    <div class="stat">STL: <span id="info-size">— KB</span></div>
   </div>
 
   <div id="instructions">🖱️ Drag to rotate • Scroll to zoom</div>
@@ -470,7 +634,7 @@
     camera.position.set(220, 100, 320);
     camera.lookAt(0, 0, 0);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -485,6 +649,10 @@
     controls.autoRotateSpeed = 1.0;
     controls.target.set(0, 0, 0);
     controls.maxPolarAngle = Math.PI / 2;
+    // Better touch sensitivity
+    controls.rotateSpeed = 0.9;
+    controls.zoomSpeed = 0.9;
+    controls.panSpeed = 0.9;
 
     // ==================== LIGHTING ====================
     scene.add(new THREE.AmbientLight(0x606075, 0.55));
@@ -918,6 +1086,14 @@
 
     Object.values(sliders).forEach(s => s.addEventListener('input', updateFromSliders));
 
+    // ==================== MOBILE SHEET TOGGLE ====================
+    const sidebar = document.getElementById('sidebar');
+    const sheetToggle = document.getElementById('sheetToggle');
+
+    sheetToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('expanded');
+    });
+
     // ==================== QUALITY PRESETS ====================
     const presets = {
       low:    { r: 36,  v: 60  },
@@ -991,11 +1167,17 @@
     });
 
     // ==================== RESIZE ====================
-    window.addEventListener('resize', () => {
+    function onResize() {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+
+      // Auto-collapse the mobile sheet when going back to desktop
+      if (window.innerWidth > 768) {
+        sidebar.classList.remove('expanded');
+      }
+    }
+    window.addEventListener('resize', onResize);
 
     // ==================== ANIMATION LOOP ====================
     function animate() {
