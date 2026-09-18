@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Schendel Design Lab - Parametric Vase Generator</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0a0a14;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    canvas { display: block; touch-action: none; }
+
+    /* ==================== DESKTOP SIDEBAR ==================== */
+    #sidebar {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      bottom: 16px;
+      width: 290px;
+      background: rgba(18, 18, 30, 0.93);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 20px;
+      padding: 20px 18px;
+      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+      z-index: 20;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: #ff7e5f #1a1a2a;
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+    #sidebar::-webkit-scrollbar { width: 6px; }
+    #sidebar::-webkit-scrollbar-track { background: #1a1a2a; border-radius: 3px; }
+    #sidebar::-webkit-scrollbar-thumb { background: #ff7e5f; border-radius: 3px; }
+
+    .sheet-toggle { display: none; }
+
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .brand-logo-wrap {
+      background: #ffffff;
+      border-radius: 50%;
+      width: 46px;
+      height: 46px;
+      padding: 4px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      flex-shrink: 0;
+    }
+    .brand-logo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+    .brand-text { display: flex; flex-direction: column; }
+    .brand-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #ff8c6f;
+      line-height: 1.2;
+    }
+    .brand-subtitle {
+      font-size: 9px;
+      color: #aaa;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    .unit-note {
+      font-size: 10px;
+      color: #999;
+      font-style: italic;
+      margin-bottom: 6px;
+      padding: 4px 8px;
+      background: rgba(255,126,95,0.08);
+      border-radius: 6px;
+      border-left: 2px solid #ff7e5f;
+    }
+    .group-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 2.5px;
+      color: #ff7e5f;
+      opacity: 0.75;
+      margin-top: 12px;
+      margin-bottom: 4px;
+      padding-bottom: 3px;
+      border-bottom: 1px solid rgba(255, 126, 95, 0.18);
+    }
+    .sub-label {
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1.8px;
+      color: #ff8c6f;
+      opacity: 0.55;
+      margin-top: 8px;
+      margin-bottom: 2px;
+    }
+    .slider-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      margin-bottom: 5px;
+    }
+    .slider-container .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .slider-container label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #aaa;
+      font-weight: 600;
+    }
+    .slider-container .value {
+      font-size: 11px;
+      font-weight: bold;
+      color: #ff8c6f;
+      font-family: 'Courier New', monospace;
+    }
+    .slider-container input[type=range] {
+      width: 100%;
+      cursor: pointer;
+      accent-color: #ff7e5f;
+      height: 4px;
+      margin: 2px 0;
+      background: transparent;
+    }
+    .hint {
+      font-size: 9px;
+      color: #777;
+      font-style: italic;
+      margin-top: -1px;
+      margin-bottom: 2px;
+      letter-spacing: 0.3px;
+    }
+    .mode-toggle {
+      display: flex;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+      padding: 3px;
+      gap: 3px;
+      margin: 4px 0 8px 0;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 9px 6px;
+      border: none;
+      background: transparent;
+      color: #999;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .mode-btn:hover { color: #ddd; }
+    .mode-btn.active {
+      background: linear-gradient(135deg, #ff7e5f, #ff5f7e);
+      color: white;
+      box-shadow: 0 3px 10px rgba(255,126,95,0.35);
+    }
+    #hollow-options.hidden { display: none; }
+    .preset-row {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+      margin-bottom: 4px;
+    }
+    .preset-btn {
+      flex: 1;
+      padding: 6px 4px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.03);
+      color: #bbb;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .preset-btn:hover {
+      color: #ff8c6f;
+      border-color: rgba(255,126,95,0.4);
+      background: rgba(255,126,95,0.08);
+    }
+    .preset-btn.active {
+      background: rgba(255,126,95,0.18);
+      color: #ff8c6f;
+      border-color: rgba(255,126,95,0.5);
+    }
+
+    #downloadSTL {
+      margin-top: 12px;
+      padding: 12px;
+      background: linear-gradient(135deg, #ff7e5f, #ff5f7e);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 15px rgba(255, 126, 95, 0.3);
+      font-family: inherit;
+    }
+    #downloadSTL:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 126, 95, 0.5);
+    }
+    #downloadSTL:active { transform: translateY(0); }
+    #downloadSTL:disabled { opacity: 0.5; cursor: wait; transform: none; }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .toggle-row input {
+      accent-color: #ff7e5f;
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+    }
+    .toggle-row label {
+      font-size: 12px;
+      color: #ccc;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    #info {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #bbb;
+      padding: 12px 18px;
+      border-radius: 14px;
+      font-size: 11px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 15;
+      pointer-events: none;
+      font-family: 'Courier New', monospace;
+      line-height: 1.6;
+    }
+    #info .title {
+      color: #ff8c6f;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    #info .stat { color: #ddd; }
+    #info .stat span { color: #ff8c6f; font-weight: bold; }
+
+    #instructions {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(0, 0, 0, 0.45);
+      color: #999;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 11px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      z-index: 15;
+      pointer-events: none;
+    }
+
+    @media (max-width: 900px) and (min-width: 769px) {
+      #sidebar { width: 250px; padding: 16px 14px; }
+      .brand-title { font-size: 12px; }
+    }
+
+    @media (max-width: 768px) {
+      #sidebar {
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 80vh;
+        height: 80dvh;
+        max-height: 80vh;
+        max-height: 80dvh;
+        border-radius: 22px 22px 0 0;
+        border-bottom: none;
+        padding: 0 16px calc(16px + env(safe-area-inset-bottom)) 16px;
+        transform: translateY(calc(100% - 56px));
+        box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.7);
+        gap: 2px;
+      }
+      #sidebar.expanded { transform: translateY(0); }
+
+      .sheet-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        position: sticky;
+        top: 0;
+        height: 56px;
+        margin: 0 -16px 4px -16px;
+        padding: 0 16px;
+        background: rgba(18, 18, 30, 0.98);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 22px 22px 0 0;
+        cursor: pointer;
+        user-select: none;
+        z-index: 10;
+        flex-shrink: 0;
+      }
+      .sheet-toggle::before {
+        content: '';
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 44px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.28);
+        border-radius: 2px;
+      }
+      .sheet-toggle-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: #ff8c6f;
+      }
+      .sheet-toggle-chevron {
+        display: inline-block;
+        font-size: 10px;
+        transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        color: #ff8c6f;
+      }
+      #sidebar.expanded .sheet-toggle-chevron { transform: rotate(180deg); }
+
+      .brand-header { margin-bottom: 8px; padding-bottom: 8px; gap: 10px; }
+      .brand-logo-wrap { width: 38px; height: 38px; padding: 3px; }
+      .brand-title { font-size: 12px; }
+      .brand-subtitle { font-size: 8px; letter-spacing: 1px; }
+
+      .slider-container { margin-bottom: 10px; }
+      .slider-container label { font-size: 11px; }
+      .slider-container .value { font-size: 12px; }
+      .slider-container input[type=range] { height: 6px; margin: 8px 0 2px 0; }
+      .hint { font-size: 10px; }
+
+      .mode-toggle { padding: 4px; gap: 4px; }
+      .mode-btn { padding: 12px 8px; font-size: 12px; }
+
+      .preset-row { gap: 6px; margin: 6px 0; }
+      .preset-btn { padding: 10px 4px; font-size: 10px; letter-spacing: 1px; }
+
+      #downloadSTL { padding: 16px; font-size: 14px; margin-top: 16px; margin-bottom: 4px; }
+      .toggle-row { margin-top: 16px; padding-top: 16px; }
+      .toggle-row input { width: 20px; height: 20px; }
+      .toggle-row label { font-size: 13px; }
+
+      #info {
+        top: calc(10px + env(safe-area-inset-top));
+        left: 10px;
+        right: 10px;
+        padding: 8px 12px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px 14px;
+        font-size: 10px;
+        border-radius: 10px;
+        line-height: 1.4;
+      }
+      #info .title { display: none; }
+      #instructions { display: none; }
+    }
+
+    @media (max-width: 768px) and (max-height: 640px) {
+      #sidebar { height: 88vh; height: 88dvh; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <div class="sheet-toggle" id="sheetToggle">
+      <span class="sheet-toggle-label">
+        Controls <span class="sheet-toggle-chevron">▲</span>
+      </span>
+    </div>
+
+    <div class="brand-header">
+      <div class="brand-logo-wrap">
+        <img src="logo.png" alt="Schendel Design Lab Logo">
+      </div>
+      <div class="brand-text">
+        <div class="brand-title">Schendel Design Lab</div>
+        <div class="brand-subtitle">Parametric Vase Generator</div>
+      </div>
+    </div>
+
+    <div class="unit-note">All dimensions in millimeters (mm)</div>
+
+    <!-- ============ PROFILE ============ -->
+    <div class="group-label">Profile</div>
+    <div class="slider-container">
+      <div class="row"><label for="height">Height</label><span class="value" id="height-val">150 mm</span></div>
+      <input type="range" id="height" min="40" max="350" step="1" value="150">
+    </div>
+    <div class="slider-container">
+      <div class="row"><label for="radius">Base Radius</label><span class="value" id="radius-val">40.0 mm</span></div>
+      <input type="range" id="radius" min="10" max="120" step="0.5" value="40">
+    </div>
+    <div class="slider-container">
+      <div class="row"><label for="taper">Linear Taper</label><span class="value" id="taper-val">0.00</span></div>
+      <input type="range" id="taper" min="-0.8" max="0.8" step="0.01" value="0.0">
+      <div class="hint">− narrows top • + widens top</div>
+    </div>
+    <div class="slider-container">
+      <div class="row"><label for="footFlare">Foot Flare</label><span class="value" id="footFlare-val">0.15</span></div>
+      <input type="range" id="footFlare" min="-0.5" max="1.5" step="0.01" value="0.15">
+    </div>
+    <div class="slider-container">
+      <div class="row"><label for="lipFlare">Lip Flare</label><span class="value" id="lipFlare-val">0.10</span></div>
+      <input type="range" id="lipFlare" min="-0.5" max="1.5" step="0.01" value="0.1">
+    </div>
+
+    <!-- ============ CURVE ============ -->
+    <div class="group-label">Curve</div>
+    <div class="slider-container">
+      <div class="row"><label for="bulge">Bulge</label><span class="value" id="bulge-val">0.50</span></div>
+      <input type="range" id="bulge" min="0" max="2" step="0.01" value="0.5">
+    </div>
+    <div class="slider-container">
+      <div class="row"><label for="bulgePos">Bulge Position</label><span class="value" id="bulgePos-val">0.50</span></div>
+      <input type="range" id="bulgePos" min="0.1" max="0.9" step="0.01" value="0.5">
+    </div>
+    <div class="slider-container">
+      <div class="row"><label for="neck">Neck / Shoulder</label><span class="value" id="neck-val">0.00</span></div>
+      <input type="range" id="neck" min="-0.7" max="0.7" step="0.01" value="0.0">
+    </div>
+
+    <!-- ============ SHAPE ============ -->
+    <div class="group-label">Shape</div>
+    <div class="slider-container">
+      <div class="row"><label for="twist">Twist</label><span class="value" id="twist-val">2.00</span></div>
+      <input type="range" id="twist" min="0" max="12.56" step="0.02" value="2.0">
+      <div class="hint">radians (2π ≈ 6.28 = 1 turn)</div>
+    </div>
+
+    <!-- ============ SURFACE ============ -->
+    <div class="group-label">Surface</div>
+
+    <div class="sub-label">Vertical Ripple</div>
+    <div class="slider-container">
+      <div class="row"><label for="vRipple">Ripple Count</label><span class="value" id="vRipple-val">5</span></div>
+      <input type="range" id="vRipple" min="0" max="40" step="1" value="5">
+      <div class="hint">waves along the height</div>
+    </div>
+    <div class="slider-container">
+      <div class="row"><label for="vRippleDepth">Ripple Depth</label><span class="value" id="vRippleDepth-val">0.09</span></div>
+      <input type="range" id="vRippleDepth" min="0" max="0.5" step="0.005" value="0.09">
+      <div class="hint">0 = flat • 0.5 = deep ridges</div>
+    </div>
+    <div class="slider-container">
+      <div class="row"><label for="vRippleSlope">Ripple Slope</label><span class="value" id="vRippleSlope-val">0.00</span></div>
+      <input type="range" id="vRippleSlope" min="-1" max="1" step="0.01" value="0">
+      <div class="hint">− leans forward • + leans back • 0 = symmetric</div>
+    </div>
+    <div class="slider-container">
+      <div class="row"><label for="vRippleFade">Ripple Fade</label><span class="value" id="vRippleFade-val">0.00</span></div>
+      <input type="range" id="vRippleFade" min="-1" max="2" step="0.01" value="0">
+      <div class="hint">− stronger at rims • + only in middle</div>
+    </div>
+
+    <div class="sub-label">Flutes</div>
+    <div class="slider-container">
+      <div class="row"><label for="flutes">Flutes</label><span class="value" id="flutes-val">6</span></div>
+      <input type="range" id="flutes" min="0" max="24" step="1" value="6">
+    </div>
+    <div class="slider-container">
+      <div class="row"><label for="fluteDepth">Flute Depth</label><span class="value" id="fluteDepth-val">0.12</span></div>
+      <input type="range" id="fluteDepth" min="0" max="0.4" step="0.01" value="0.12">
+    </div>
+    <div class="slider-container">
+      <div class="row"><label for="fluteTaper">Flute Fade</label><span class="value" id="fluteTaper-val">0.60</span></div>
+      <input type="range" id="fluteTaper" min="-1" max="2" step="0.01" value="0.6">
+      <div class="hint">− stronger at rims • + concentrated in middle</div>
+    </div>
+
+    <!-- ============ CONSTRUCTION ============ -->
+    <div class="group-label">Construction</div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="hollow">Hollow</button>
+      <button class="mode-btn" data-mode="solid">Solid</button>
+    </div>
+
+    <div id="hollow-options">
+      <div class="slider-container">
+        <div class="row"><label for="wallThickness">Wall Thickness</label><span class="value" id="wallThickness-val">1.5 mm</span></div>
+        <input type="range" id="wallThickness" min="0.6" max="10" step="0.1" value="1.5">
+      </div>
+      <div class="slider-container">
+        <div class="row"><label for="baseThickness">Base Thickness</label><span class="value" id="baseThickness-val">3.0 mm</span></div>
+        <input type="range" id="baseThickness" min="1" max="25" step="0.5" value="3">
+      </div>
+    </div>
+
+    <!-- ============ QUALITY ============ -->
+    <div class="group-label">Quality</div>
+    <div class="preset-row" id="presetRow">
+      <button class="preset-btn" data-preset="low">Low</button>
+      <button class="preset-btn active" data-preset="medium">Med</button>
+      <button class="preset-btn" data-preset="high">High</button>
+      <button class="preset-btn" data-preset="ultra">Ultra</button>
+    </div>
+
+    <div class="slider-container">
+      <div class="row"><label for="radialRes">Radial Segments</label><span class="value" id="radialRes-val">72</span></div>
+      <input type="range" id="radialRes" min="12" max="256" step="1" value="72">
+      <div class="hint">points around the circumference</div>
+    </div>
+    <div class="slider-container">
+      <div class="row"><label for="verticalRes">Vertical Segments</label><span class="value" id="verticalRes-val">120</span></div>
+      <input type="range" id="verticalRes" min="20" max="400" step="1" value="120">
+      <div class="hint">layers from bottom to top</div>
+    </div>
+
+    <button id="downloadSTL">⬇ Download STL</button>
+
+    <div class="toggle-row">
+      <input type="checkbox" id="autoRotate" checked>
+      <label for="autoRotate">Auto-rotate view</label>
+    </div>
+  </div>
+
+  <div id="info">
+    <div class="title">Dimensions</div>
+    <div class="stat">H: <span id="info-height">150 mm</span></div>
+    <div class="stat">Ø: <span id="info-diameter">— mm</span></div>
+    <div class="stat">Mode: <span id="info-mode">Hollow</span></div>
+    <div class="stat">Vol: <span id="info-volume">— cm³</span></div>
+    <div class="stat">Tris: <span id="info-tris">—</span></div>
+    <div class="stat">STL: <span id="info-size">— KB</span></div>
+  </div>
+
+  <div id="instructions">🖱️ Drag to rotate • Scroll to zoom</div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.126.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.126.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // ==================== SCENE ====================
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a14);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 8000);
+    camera.position.set(220, 100, 320);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 1.0;
+    controls.target.set(0, 0, 0);
+    controls.maxPolarAngle = Math.PI / 2;
+    controls.rotateSpeed = 0.9;
+    controls.zoomSpeed = 0.9;
+    controls.panSpeed = 0.9;
+
+    // ==================== LIGHTING ====================
+    scene.add(new THREE.AmbientLight(0x606075, 0.55));
+
+    const keyLight = new THREE.DirectionalLight(0xfff2e6, 1.15);
+    keyLight.position.set(250, 450, 350);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x88aaff, 0.45);
+    fillLight.position.set(-350, 180, -250);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffaa88, 0.5);
+    rimLight.position.set(-100, 80, -450);
+    scene.add(rimLight);
+
+    // ==================== GRID ====================
+    const gridHelper = new THREE.GridHelper(600, 30, 0x99aaff, 0x334466);
+    gridHelper.material.opacity = 0.35;
+    gridHelper.material.transparent = true;
+    scene.add(gridHelper);
+
+    // ==================== PARAMETERS ====================
+    const params = {
+      mode: 'hollow',
+      radialRes: 72,
+      verticalRes: 120,
+      height: 150,
+      radius: 40,
+      taper: 0.0,
+      footFlare: 0.15,
+      lipFlare: 0.10,
+      bulge: 0.5,
+      bulgePos: 0.5,
+      neck: 0.0,
+      twist: 2.0,
+      vRipple: 5,
+      vRippleDepth: 0.09,
+      vRippleSlope: 0.0,
+      vRippleFade: 0.0,
+      flutes: 6,
+      fluteDepth: 0.12,
+      fluteTaper: 0.6,
+      wallThickness: 1.5,
+      baseThickness: 3.0
+    };
+
+    // ==================== VASE MESH ====================
+    let vaseMesh = null;
+
+    // ==================== RADIUS FUNCTION ====================
+    function outerRadius(t, localTheta) {
+      const { radius, taper, footFlare, lipFlare,
+              bulge, bulgePos, neck,
+              vRipple, vRippleDepth, vRippleSlope, vRippleFade,
+              flutes, fluteDepth, fluteTaper } = params;
+
+      const taperFactor = 1 + taper * t;
+      const bd = t - bulgePos;
+      const bulgeFactor = 1 + bulge * Math.exp(-(bd * bd) / 0.08);
+      const nd = t - 0.78;
+      const neckFactor = 1 + neck * Math.exp(-(nd * nd) / 0.05);
+      const footFactor = 1 + footFlare * Math.pow(1 - t, 3);
+      const lipFactor = 1 + lipFlare * Math.pow(t, 3);
+      const baseOval = 1 + 0.07 * Math.sin(2 * localTheta);
+
+      // Shared bell curve used by both fades
+      const bell = Math.sin(Math.PI * t);
+
+      // ---- Vertical ripple with depth + slope + fade ----
+      const phi = vRipple * 2 * Math.PI * t;
+      const distorted = phi + vRippleSlope * Math.sin(phi);
+
+      const rippleRawDepth = 1 - vRippleFade + vRippleFade * bell;
+      const rippleDepthScale = Math.max(0, rippleRawDepth);
+      const vRippleFactor = 1 + vRippleDepth * rippleDepthScale * Math.sin(distorted);
+
+      // ---- Flute fade ----
+      const fluteRawDepth = 1 - fluteTaper + fluteTaper * bell;
+      const fluteDepthScale = Math.max(0, fluteRawDepth);
+
+      const fluteFactor = flutes > 0
+        ? 1 + fluteDepth * fluteDepthScale * Math.sin(flutes * localTheta)
+        : 1;
+
+      return radius * taperFactor * bulgeFactor * neckFactor
+           * footFactor * lipFactor * vRippleFactor * baseOval * fluteFactor;
+    }
+
+    // ==================== RESOLUTION ====================
+    function resolvedRadial() {
+      const { flutes, radialRes } = params;
+      const minForFlutes = flutes > 0 ? flutes * 8 : 0;
+      return Math.max(radialRes, minForFlutes, 12);
+    }
+    function resolvedVertical() {
+      const { verticalRes, vRipple, vRippleDepth } = params;
+      const depthBoost = 1 + Math.min(Math.max(vRippleDepth / 0.09 - 1, 0), 2);
+      const minForRipple = vRipple > 0 ? Math.ceil(vRipple * 8 * depthBoost) : 0;
+      return Math.max(verticalRes, minForRipple, 4);
+    }
+
+    // ==================== SHARED RING ====================
+    function pushRing(vertices, y, t, R) {
+      for (let i = 0; i < R; i++) {
+        const localTheta = (i / R) * Math.PI * 2;
+        const worldAngle = localTheta + params.twist * t;
+        const r = outerRadius(t, localTheta);
+        vertices.push(Math.cos(worldAngle) * r, y, Math.sin(worldAngle) * r);
+      }
+    }
+
+    // ==================== SOLID GEOMETRY ====================
+    function generateSolidGeometry() {
+      const { height } = params;
+      const R = resolvedRadial();
+      const V = resolvedVertical();
+
+      const vertices = [];
+      const indices = [];
+
+      const outerStart = 0;
+      for (let j = 0; j <= V; j++) {
+        const t = j / V;
+        pushRing(vertices, t * height, t, R);
+      }
+      for (let j = 0; j < V; j++) {
+        for (let i = 0; i < R; i++) {
+          const iN = (i + 1) % R;
+          const a = outerStart + j * R + i;
+          const b = outerStart + (j + 1) * R + i;
+          const c = outerStart + j * R + iN;
+          const d = outerStart + (j + 1) * R + iN;
+          indices.push(a, b, c);
+          indices.push(b, d, c);
+        }
+      }
+
+      const bottomCenterIdx = vertices.length / 3;
+      vertices.push(0, 0, 0);
+      for (let i = 0; i < R; i++) {
+        const iN = (i + 1) % R;
+        const a = outerStart + i;
+        const b = outerStart + iN;
+        indices.push(bottomCenterIdx, a, b);
+      }
+
+      const topRingStart = outerStart + V * R;
+      const topCenterIdx = vertices.length / 3;
+      vertices.push(0, height, 0);
+      for (let i = 0; i < R; i++) {
+        const iN = (i + 1) % R;
+        const a = topRingStart + i;
+        const b = topRingStart + iN;
+        indices.push(topCenterIdx, b, a);
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.setIndex(indices);
+      geometry.computeVertexNormals();
+      return geometry;
+    }
+
+    // ==================== HOLLOW GEOMETRY ====================
+    function generateHollowGeometry() {
+      const { height, wallThickness, baseThickness } = params;
+      const R = resolvedRadial();
+      const V = resolvedVertical();
+
+      const jBase = Math.max(2, Math.min(V - 2,
+        Math.round((baseThickness / height) * V)));
+
+      const vertices = [];
+      const indices = [];
+
+      // 1. Outer wall
+      const outerStart = 0;
+      for (let j = 0; j <= V; j++) {
+        const t = j / V;
+        pushRing(vertices, t * height, t, R);
+      }
+      for (let j = 0; j < V; j++) {
+        for (let i = 0; i < R; i++) {
+          const iN = (i + 1) % R;
+          const a = outerStart + j * R + i;
+          const b = outerStart + (j + 1) * R + i;
+          const c = outerStart + j * R + iN;
+          const d = outerStart + (j + 1) * R + iN;
+          indices.push(a, b, c);
+          indices.push(b, d, c);
+        }
+      }
+
+      // 2. Bottom cap
+      const bottomCenterIdx = vertices.length / 3;
+      vertices.push(0, 0, 0);
+      for (let i = 0; i < R; i++) {
+        const iN = (i + 1) % R;
+        const a = outerStart + i;
+        const b = outerStart + iN;
+        indices.push(bottomCenterIdx, a, b);
+      }
+
+      // 3. Inner wall
+      const innerStart = vertices.length / 3;
+      const innerRows = V - jBase + 1;
+
+      for (let j = jBase; j <= V; j++) {
+        const t = j / V;
+        const y = t * height;
+        for (let i = 0; i < R; i++) {
+          const localTheta = (i / R) * Math.PI * 2;
+          const worldAngle = localTheta + params.twist * t;
+          let r = outerRadius(t, localTheta) - wallThickness;
+          if (r < 0.3) r = 0.3;
+          vertices.push(Math.cos(worldAngle) * r, y, Math.sin(worldAngle) * r);
+        }
+      }
+      for (let j = 0; j < innerRows - 1; j++) {
+        for (let i = 0; i < R; i++) {
+          const iN = (i + 1) % R;
+          const a = innerStart + j * R + i;
+          const b = innerStart + (j + 1) * R + i;
+          const c = innerStart + j * R + iN;
+          const d = innerStart + (j + 1) * R + iN;
+          indices.push(a, c, b);
+          indices.push(b, c, d);
+        }
+      }
+
+      // 4. Top rim annulus
+      const outerTopStart = outerStart + V * R;
+      const innerTopStart = innerStart + (innerRows - 1) * R;
+      for (let i = 0; i < R; i++) {
+        const iN = (i + 1) % R;
+        const oA = outerTopStart + i;
+        const oB = outerTopStart + iN;
+        const iA = innerTopStart + i;
+        const iB = innerTopStart + iN;
+        indices.push(oA, iA, iB);
+        indices.push(oA, iB, oB);
+      }
+
+      // 5. Inner base cap
+      const innerBaseY = (jBase / V) * height;
+      const innerBaseCenterIdx = vertices.length / 3;
+      vertices.push(0, innerBaseY, 0);
+      for (let i = 0; i < R; i++) {
+        const iN = (i + 1) % R;
+        const a = innerStart + i;
+        const b = innerStart + iN;
+        indices.push(innerBaseCenterIdx, b, a);
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.setIndex(indices);
+      geometry.computeVertexNormals();
+      return geometry;
+    }
+
+    // ==================== DISPATCH ====================
+    function generateVaseGeometry() {
+      return params.mode === 'solid'
+        ? generateSolidGeometry()
+        : generateHollowGeometry();
+    }
+
+    // ==================== UPDATE ====================
+    function updateVase() {
+      const newGeo = generateVaseGeometry();
+
+      if (vaseMesh) {
+        vaseMesh.geometry.dispose();
+        vaseMesh.geometry = newGeo;
+      } else {
+        const material = new THREE.MeshStandardMaterial({
+          color: 0xffa585,
+          roughness: 0.45,
+          metalness: 0.05,
+          side: THREE.FrontSide,
+          flatShading: false
+        });
+        vaseMesh = new THREE.Mesh(newGeo, material);
+        scene.add(vaseMesh);
+      }
+
+      vaseMesh.position.y = -params.height / 2;
+      gridHelper.position.y = -params.height / 2 - 3;
+      controls.target.set(0, 0, 0);
+
+      updateInfoPanel(newGeo);
+    }
+
+    // ==================== INFO PANEL ====================
+    function updateInfoPanel(geo) {
+      geo.computeBoundingBox();
+      const bb = geo.boundingBox;
+      const maxDiameter = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z);
+
+      const pos = geo.attributes.position;
+      const idx = geo.index;
+      let vol = 0;
+      const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+      const cross = new THREE.Vector3();
+
+      for (let i = 0; i < idx.count; i += 3) {
+        vA.fromBufferAttribute(pos, idx.getX(i));
+        vB.fromBufferAttribute(pos, idx.getX(i + 1));
+        vC.fromBufferAttribute(pos, idx.getX(i + 2));
+        cross.crossVectors(vB, vC);
+        vol += vA.dot(cross);
+      }
+      vol = Math.abs(vol) / 6;
+      const volumeCm3 = vol / 1000;
+
+      const triCount = idx.count / 3;
+      const stlBytes = 84 + triCount * 50;
+      const stlKB = stlBytes / 1024;
+
+      document.getElementById('info-height').textContent = params.height.toFixed(0) + ' mm';
+      document.getElementById('info-diameter').textContent = maxDiameter.toFixed(1) + ' mm';
+      document.getElementById('info-mode').textContent =
+        params.mode === 'solid' ? 'Solid' : 'Hollow';
+      document.getElementById('info-volume').textContent = volumeCm3.toFixed(1) + ' cm³';
+      document.getElementById('info-tris').textContent = triCount.toLocaleString();
+      document.getElementById('info-size').textContent =
+        stlKB > 1024 ? (stlKB / 1024).toFixed(2) + ' MB' : stlKB.toFixed(1) + ' KB';
+    }
+
+    // ==================== STL EXPORT ====================
+    function exportSTL() {
+      const geometry = vaseMesh.geometry;
+      const posAttr = geometry.attributes.position;
+      const index = geometry.index;
+      const triCount = index.count / 3;
+
+      const buffer = new ArrayBuffer(84 + triCount * 50);
+      const view = new DataView(buffer);
+
+      const header = `Schendel Design Lab - Parametric Vase Generator (${params.mode}, mm)`;
+      for (let i = 0; i < 80; i++) {
+        view.setUint8(i, i < header.length ? header.charCodeAt(i) : 0x20);
+      }
+      view.setUint32(80, triCount, true);
+
+      let offset = 84;
+      const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+      const cb = new THREE.Vector3(), ab = new THREE.Vector3();
+
+      const writeVec = (v) => {
+        view.setFloat32(offset, v.x, true); offset += 4;
+        view.setFloat32(offset, -v.z, true); offset += 4;
+        view.setFloat32(offset, v.y, true); offset += 4;
+      };
+
+      for (let i = 0; i < triCount; i++) {
+        const i0 = index.getX(i * 3);
+        const i1 = index.getX(i * 3 + 1);
+        const i2 = index.getX(i * 3 + 2);
+
+        vA.fromBufferAttribute(posAttr, i0);
+        vB.fromBufferAttribute(posAttr, i1);
+        vC.fromBufferAttribute(posAttr, i2);
+
+        cb.subVectors(vC, vB);
+        ab.subVectors(vA, vB);
+        cb.cross(ab);
+        if (cb.lengthSq() > 0) cb.normalize();
+
+        view.setFloat32(offset,  cb.x, true); offset += 4;
+        view.setFloat32(offset, -cb.z, true); offset += 4;
+        view.setFloat32(offset,  cb.y, true); offset += 4;
+
+        writeVec(vA);
+        writeVec(vB);
+        writeVec(vC);
+
+        view.setUint16(offset, 0, true); offset += 2;
+      }
+
+      const blob = new Blob([buffer], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `schendel_${params.mode}_${params.height.toFixed(0)}mm_${params.radius.toFixed(0)}r.stl`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // ==================== SLIDER BINDINGS ====================
+    const sliderIds = [
+      'height', 'radius', 'taper', 'footFlare', 'lipFlare',
+      'bulge', 'bulgePos', 'neck', 'twist',
+      'vRipple', 'vRippleDepth', 'vRippleSlope', 'vRippleFade',
+      'flutes', 'fluteDepth', 'fluteTaper',
+      'wallThickness', 'baseThickness',
+      'radialRes', 'verticalRes'
+    ];
+
+    const sliders = {};
+    const displays = {};
+    sliderIds.forEach(id => {
+      sliders[id] = document.getElementById(id);
+      displays[id] = document.getElementById(id + '-val');
+    });
+
+    const fmt = (val, suffix = '', decimals = 2) => val.toFixed(decimals) + suffix;
+
+    function updateFromSliders() {
+      params.height        = parseFloat(sliders.height.value);
+      params.radius        = parseFloat(sliders.radius.value);
+      params.taper         = parseFloat(sliders.taper.value);
+      params.footFlare     = parseFloat(sliders.footFlare.value);
+      params.lipFlare      = parseFloat(sliders.lipFlare.value);
+      params.bulge         = parseFloat(sliders.bulge.value);
+      params.bulgePos      = parseFloat(sliders.bulgePos.value);
+      params.neck          = parseFloat(sliders.neck.value);
+      params.twist         = parseFloat(sliders.twist.value);
+      params.vRipple       = parseInt(sliders.vRipple.value);
+      params.vRippleDepth  = parseFloat(sliders.vRippleDepth.value);
+      params.vRippleSlope  = parseFloat(sliders.vRippleSlope.value);
+      params.vRippleFade   = parseFloat(sliders.vRippleFade.value);
+      params.flutes        = parseInt(sliders.flutes.value);
+      params.fluteDepth    = parseFloat(sliders.fluteDepth.value);
+      params.fluteTaper    = parseFloat(sliders.fluteTaper.value);
+      params.wallThickness = parseFloat(sliders.wallThickness.value);
+      params.baseThickness = parseFloat(sliders.baseThickness.value);
+      params.radialRes     = parseInt(sliders.radialRes.value);
+      params.verticalRes   = parseInt(sliders.verticalRes.value);
+
+      displays.height.textContent        = fmt(params.height, ' mm', 0);
+      displays.radius.textContent        = fmt(params.radius, ' mm', 1);
+      displays.taper.textContent         = fmt(params.taper);
+      displays.footFlare.textContent     = fmt(params.footFlare);
+      displays.lipFlare.textContent      = fmt(params.lipFlare);
+      displays.bulge.textContent         = fmt(params.bulge);
+      displays.bulgePos.textContent      = fmt(params.bulgePos);
+      displays.neck.textContent          = fmt(params.neck);
+      displays.twist.textContent         = fmt(params.twist);
+      displays.vRipple.textContent       = params.vRipple;
+      displays.vRippleDepth.textContent  = fmt(params.vRippleDepth, '', 3);
+      displays.vRippleSlope.textContent  = fmt(params.vRippleSlope);
+      displays.vRippleFade.textContent   = fmt(params.vRippleFade);
+      displays.flutes.textContent        = params.flutes;
+      displays.fluteDepth.textContent    = fmt(params.fluteDepth);
+      displays.fluteTaper.textContent    = fmt(params.fluteTaper);
+      displays.wallThickness.textContent = fmt(params.wallThickness, ' mm', 1);
+      displays.baseThickness.textContent = fmt(params.baseThickness, ' mm', 1);
+      displays.radialRes.textContent     = params.radialRes;
+      displays.verticalRes.textContent   = params.verticalRes;
+
+      updateVase();
+    }
+
+    Object.values(sliders).forEach(s => s.addEventListener('input', updateFromSliders));
+
+    // ==================== MOBILE SHEET TOGGLE ====================
+    const sidebar = document.getElementById('sidebar');
+    const sheetToggle = document.getElementById('sheetToggle');
+
+    sheetToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('expanded');
+    });
+
+    // ==================== QUALITY PRESETS ====================
+    const presets = {
+      low:    { r: 36,  v: 60  },
+      medium: { r: 72,  v: 120 },
+      high:   { r: 128, v: 200 },
+      ultra:  { r: 200, v: 320 }
+    };
+
+    const presetButtons = document.querySelectorAll('.preset-btn');
+
+    function highlightPreset(name) {
+      presetButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === name));
+    }
+
+    presetButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = presets[btn.dataset.preset];
+        sliders.radialRes.value = p.r;
+        sliders.verticalRes.value = p.v;
+        highlightPreset(btn.dataset.preset);
+        updateFromSliders();
+      });
+    });
+
+    sliders.radialRes.addEventListener('input', () => highlightPreset(null));
+    sliders.verticalRes.addEventListener('input', () => highlightPreset(null));
+
+    // ==================== MODE TOGGLE ====================
+    const modeButtons = document.querySelectorAll('.mode-btn');
+    const hollowOptions = document.getElementById('hollow-options');
+
+    modeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        if (params.mode === mode) return;
+        params.mode = mode;
+
+        modeButtons.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+
+        if (mode === 'solid') {
+          hollowOptions.classList.add('hidden');
+        } else {
+          hollowOptions.classList.remove('hidden');
+        }
+
+        updateVase();
+      });
+    });
+
+    // ==================== AUTO-ROTATE ====================
+    document.getElementById('autoRotate').addEventListener('change', (e) => {
+      controls.autoRotate = e.target.checked;
+    });
+
+    // ==================== STL DOWNLOAD ====================
+    document.getElementById('downloadSTL').addEventListener('click', () => {
+      const btn = document.getElementById('downloadSTL');
+      btn.disabled = true;
+      btn.textContent = '⏳ Generating...';
+      setTimeout(() => {
+        try { exportSTL(); }
+        catch (e) { console.error(e); alert('Export failed: ' + e.message); }
+        btn.disabled = false;
+        btn.textContent = '⬇ Download STL';
+      }, 30);
+    });
+
+    // ==================== RESIZE ====================
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      if (window.innerWidth > 768) {
+        sidebar.classList.remove('expanded');
+      }
+    }
+    window.addEventListener('resize', onResize);
+
+    // ==================== ANIMATION LOOP ====================
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // ==================== INITIALIZE ====================
+    updateFromSliders();
+    animate();
+  </script>
+</body>
+</html>
